@@ -1,0 +1,62 @@
+# ===========================
+# Core LLM
+# ===========================
+google-genai>=1.20.0
+langchain-google-genai>=2.1.0
+
+# ===========================
+# LangChain Ecosystem
+# ===========================
+langchain>=0.3.25
+langchain-core>=0.3.60
+langchain-community>=0.3.25
+langchain-text-splitters>=0.3.8
+langgraph>=0.2.70
+
+# ===========================
+# Vector Database
+# ===========================
+chromadb>=0.5.20
+
+# ===========================
+# Embeddings
+# ===========================
+sentence-transformers>=3.2.0
+
+# ===========================
+# Document Parsing
+# ===========================
+pypdf>=5.0
+pymupdf>=1.25
+markdown>=3.7
+unstructured>=0.16
+
+# ===========================
+# Frontend
+# ===========================
+streamlit>=1.45
+
+# ===========================
+# Images
+# ===========================
+Pillow>=10.4
+
+# ===========================
+# Utilities
+# ===========================
+python-dotenv>=1.0
+pydantic>=2.10
+tenacity>=9.0
+rich>=13.9
+tqdm>=4.66
+numpy>=1.26
+pandas>=2.2
+requests>=2.32
+typing-extensions>=4.12
+watchdog>=5.0
+
+# ===========================
+# Testing
+# ===========================
+pytest>=8.3
+pytest-mock>=3.14

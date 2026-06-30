@@ -1,0 +1,190 @@
+# ==========================================================
+# Aura - AI Powered Solar O&M Copilot
+# .gitignore
+# ==========================================================
+
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+
+# -------------------------
+# Virtual Environments
+# -------------------------
+.venv/
+venv/
+env/
+ENV/
+
+# -------------------------
+# Environment Variables
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------
+# Python Packaging
+# -------------------------
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# -------------------------
+# Pytest
+# -------------------------
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# -------------------------
+# Type Checking
+# -------------------------
+.mypy_cache/
+.pyre/
+.pytype/
+
+# -------------------------
+# Ruff / Flake8
+# -------------------------
+.ruff_cache/
+
+# -------------------------
+# Jupyter
+# -------------------------
+.ipynb_checkpoints/
+
+# -------------------------
+# VS Code
+# -------------------------
+.vscode/
+
+# -------------------------
+# PyCharm
+# -------------------------
+.idea/
+
+# -------------------------
+# macOS
+# -------------------------
+.DS_Store
+
+# -------------------------
+# Windows
+# -------------------------
+Thumbs.db
+Desktop.ini
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+*.log
+
+# -------------------------
+# Streamlit
+# -------------------------
+.streamlit/secrets.toml
+
+# Optional:
+# Ignore local Streamlit config if desired
+# .streamlit/config.toml
+
+# -------------------------
+# ChromaDB
+# -------------------------
+vectorstore/
+chroma/
+chroma_db/
+*.sqlite3
+*.sqlite
+*.db
+
+# -------------------------
+# FAISS (Future)
+# -------------------------
+*.faiss
+*.index
+
+# -------------------------
+# Temporary Files
+# -------------------------
+tmp/
+temp/
+.cache/
+
+# -------------------------
+# Uploaded Images
+# -------------------------
+uploads/
+uploaded_images/
+
+# -------------------------
+# Generated Reports
+# -------------------------
+reports/
+output/
+outputs/
+
+# -------------------------
+# Generated Tickets
+# -------------------------
+tickets/
+
+# -------------------------
+# Model Downloads
+# -------------------------
+models/
+
+# -------------------------
+# Hugging Face Cache
+# -------------------------
+.huggingface/
+hf_cache/
+
+# -------------------------
+# Torch Cache
+# -------------------------
+.torch/
+
+# -------------------------
+# Sentence Transformer Cache
+# -------------------------
+sentence_transformers/
+
+# -------------------------
+# LangChain / LangGraph
+# -------------------------
+langchain.db
+
+# -------------------------
+# MLflow (Future)
+# -------------------------
+mlruns/
+
+# -------------------------
+# Docker
+# -------------------------
+*.pid
+docker-compose.override.yml
+
+# -------------------------
+# Terraform (Future)
+# -------------------------
+.terraform/
+
+# -------------------------
+# Miscellaneous
+# -------------------------
+*.tmp
+*.bak
+*.swp
+*.swo
