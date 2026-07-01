@@ -1,0 +1,48 @@
+TITLE: Solar Inverter Error Codes – Troubleshooting Guide
+DOCUMENT ID: INV-ERR-2024
+REVISION: 2.1
+DATE: 15 March 2024
+
+Table of Contents:
+1. Error Code E-001: Grid Overvoltage
+2. Error Code E-002: Grid Undervoltage
+3. Error Code E-008: DC Isolation Fault
+4. Error Code E-015: Ground Fault
+5. Error Code E-030: Module Temperature High
+6. Error Code E-042: String Current Imbalance
+
+1. Error Code E-001: Grid Overvoltage
+   Description: AC voltage exceeds upper threshold.
+   Possible Causes: Utility grid fluctuation, loose AC termination, undersized transformer tap setting.
+   Immediate Action: Check AC breaker; verify grid voltage with multimeter.
+   Troubleshooting: Inspect AC surge arrestor, tighten connections, adjust inverter grid protection settings if permitted by utility.
+   Spare Parts: AC surge arrestor (Part# ASP-001), AC termination block (Part# ATC-200).
+
+2. Error Code E-002: Grid Undervoltage
+   Description: AC voltage below safe operating limit.
+   Possible Causes: Grid brownout, excessive cable length between inverter and PCC, faulty voltage sensor.
+   Troubleshooting: Measure voltage at inverter AC terminals; compare with SCADA reading. If discrepancy >5%, replace voltage sensor board.
+
+3. Error Code E-008: DC Isolation Fault
+   Description: Insulation resistance between PV array and earth ground is too low.
+   Possible Causes: Moisture ingress in junction boxes, damaged module backsheet, DC cable chafing against module frame, PID degradation.
+   Safety Precautions: Isolate inverter AC & DC before testing. Use 1000V insulation tester (megger).
+   Troubleshooting Steps:
+     a. Disconnect all strings from inverter.
+     b. Measure each string’s positive-to-ground and negative-to-ground resistance individually.
+     c. If resistance < 1 MOhm, trace the string back to locate damaged cable or faulty module.
+     d. Pay special attention to modules in flood-prone areas of the floating array.
+   Recommended PPE: Class 0 insulating gloves, arc flash suit.
+
+4. Error Code E-015: Ground Fault
+   Description: Leakage current to ground exceeds limit.
+   Troubleshooting: Check for water inside junction boxes; inspect combiner box fuses for blown indication. Verify grounding conductor continuity.
+
+5. Error Code E-030: Module Temperature High
+   Description: Inverter reports backsheet temperature >70°C.
+   Possible Causes: Hotspot on module, ventilation issue under floating platform, bird droppings.
+   Action: Thermal image scan of affected string. Clean surface if soiled.
+
+6. Error Code E-042: String Current Imbalance
+   Description: One or more strings in the same MPPT have current deviation >15%.
+   Troubleshooting: Compare I-V curve traces; identify underperforming string; check for cracked modules, shading, or connector oxidation.

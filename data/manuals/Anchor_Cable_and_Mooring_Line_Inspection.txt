@@ -1,0 +1,29 @@
+ANCHOR CABLE & MOORING LINE INSPECTION GUIDE
+=============================================
+Ref: ACI-2023-R2
+
+This guide applies to all catenary and taut mooring systems at Maithon floating solar.
+
+1. Visual Inspection (Weekly)
+   - Look for frayed strands, kinks, or bird damage on polyester mooring ropes.
+   - Check for excessive marine growth that adds weight.
+   - Inspect thimbles and spliced eyes for deformation.
+
+2. Mechanical Testing (Bi-Annual)
+   - Perform tension test using calibrated load cell.
+   - Compare measured tension with design tension. Acceptable deviation: ±10%.
+   - If tension is out of range, adjust by rotating turnbuckle.
+
+3. Corrosion Assessment of Steel Components
+   - Anchor chains, shackles, and tensioning hardware shall be inspected for rust.
+   - Apply marine-grade anti-corrosion paint if surface rust is observed.
+   - Replace any component with section loss >5%.
+
+4. Anchor Integrity
+   - For gravity anchors, inspect concrete surface for cracks.
+   - For helical anchors, verify no vertical movement.
+   - Record water depth at anchor location; if depth has changed by >1m, re-evaluate anchor holding capacity.
+
+5. Emergency Procedures
+   - If a mooring line breaks, immediately isolate the affected floating island by disconnecting walkways.
+   - Notify O&M Manager and deploy standby anchor system.

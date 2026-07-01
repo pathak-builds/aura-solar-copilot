@@ -1,0 +1,28 @@
+PV MODULE FAILURE DIAGNOSIS – FIELD GUIDE
+========================================
+Document: MOD-DIAG-2023
+
+1. Hotspots
+   - Symptoms: Localized brown/burn marks on module surface, glass shattering, junction box melting.
+   - Root Cause: Shading (vegetation, bird droppings), cracked cells, poor solder joints.
+   - Inspection: Use handheld thermal imager; cell temperature difference >15°C indicates hotspot.
+   - Action: Replace affected module. Trim nearby vegetation.
+
+2. PID (Potential Induced Degradation)
+   - Symptoms: Severe power loss, especially in strings with negative voltage to ground.
+   - Diagnosis: Measure string open-circuit voltage early morning before sunrise; compare with rated Voc. >20% drop suggests PID.
+   - Mitigation: Install PID recovery boxes or replace affected modules.
+
+3. Module Cracks (Snail Trails)
+   - Symptoms: Thin dark lines on cell surface, micro-cracks visible with EL imaging.
+   - Cause: Mechanical stress during installation, wind-induced vibration, hail.
+   - Action: EL test the entire string; replace modules with >5% cell area cracked.
+
+4. Delamination
+   - Symptoms: Air bubbles between glass and encapsulant, moisture ingress.
+   - Action: Replace module; inspect adjacent modules for same issue.
+
+5. Junction Box Failure
+   - Symptoms: Burnt smell, bypass diode shorted, melted junction box.
+   - Check: Diode forward voltage, bypass functionality.
+   - Spare: Replacement junction box (Part No. JB-550).
