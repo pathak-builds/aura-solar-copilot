@@ -188,3 +188,5 @@ docker-compose.override.yml
 *.bak
 *.swp
 *.swo
+
+.env.example

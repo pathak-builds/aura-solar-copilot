@@ -52,18 +52,20 @@ def configure_sidebar() -> dict:
             "top_k": top_k
         }
 
-def run_agent(query: str, image_path: str | None, settings_dict: dict):
-    """Execute the agent graph and return the result state."""
-    # Set the API key dynamically if user provided it in sidebar
-    if settings_dict["api_key"]:
-        os.environ["GEMINI_API_KEY"] = settings_dict["api_key"]
-        # Re-import after setting env var so config picks it up
-        from config import settings
-        settings.gemini_api_key = settings_dict["api_key"]
+def run_agent(query: str, image_path: str | None, ui_settings: dict) -> dict:
+    """
+    Execute the LangGraph agent with the user's query, image, and settings.
+    Returns the final state dict.
+    """
+    from config import settings
+    import os
 
-    # Update config values
-    settings.llm_temperature = settings_dict["temperature"]
-    settings.top_k_docs = settings_dict["top_k"]
+    # Update settings with values from sidebar (fall back to existing if empty)
+    if ui_settings["api_key"]:
+        os.environ["GEMINI_API_KEY"] = ui_settings["api_key"]
+        settings.gemini_api_key = ui_settings["api_key"]
+    settings.llm_temperature = ui_settings.get("temperature", settings.llm_temperature)
+    settings.top_k_docs = ui_settings.get("top_k", settings.top_k_docs)
 
     # Build the compiled graph
     graph = build_graph()
@@ -77,11 +79,11 @@ def run_agent(query: str, image_path: str | None, settings_dict: dict):
         "tool_calls": None,
         "tool_results": None,
         "final_response": None,
-        "messages": []  # We'll let the agent manage its own memory; UI keeps its own
+        "messages": []
     }
 
-    # Add recent conversation history from UI into the agent's memory (last 4 exchanges)
-    ui_history = st.session_state.messages[-6:]  # last 6 messages ~ 3 exchanges
+    # Add recent conversation history from UI into the agent's memory
+    ui_history = st.session_state.messages[-6:]
     agent_messages = []
     for msg in ui_history:
         if msg["role"] in ("user", "assistant"):
@@ -99,17 +101,14 @@ def run_agent(query: str, image_path: str | None, settings_dict: dict):
 
 def display_results(state: dict):
     """Show final answer, sources, tool calls, etc."""
-    # Final response
     if state.get("final_response"):
         add_assistant_message(state["final_response"])
     else:
         add_assistant_message("⚠️ No response generated. Please try again.")
 
-    # Metrics: response time
     if "elapsed_time" in state:
         st.caption(f"⏱️ Response time: {state['elapsed_time']}")
 
-    # Agent steps inside expanders
     with st.expander("🔍 Agent Steps & Debug Info", expanded=False):
         col1, col2 = st.columns(2)
         with col1:
@@ -147,15 +146,12 @@ def main():
     apply_styles()
     init_chat()
 
-    # Sidebar
     user_settings = configure_sidebar()
 
-    # Chat container
     chat_container = st.container()
     with chat_container:
         display_chat()
 
-    # Input area
     col1, col2 = st.columns([8, 2])
     with col1:
         user_input = st.chat_input("Describe the problem (e.g., 'Inverter showing E-008 fault...')")
@@ -166,32 +162,26 @@ def main():
             label_visibility="collapsed"
         )
 
-    # Process user input
     if user_input:
-        # Save uploaded image temporarily
         image_path = None
         if uploaded_file:
-            # Create temp file
             with tempfile.NamedTemporaryFile(delete=False, suffix=Path(uploaded_file.name).suffix) as tmp:
                 tmp.write(uploaded_file.getvalue())
                 image_path = tmp.name
 
-        # Add user message to UI
         add_user_message(user_input, image_path)
 
-        # Run agent
         with st.spinner("🧠 Aura is analysing..."):
             try:
                 final_state = run_agent(
                     query=user_input,
                     image_path=image_path,
-                    settings_dict=user_settings
+                    ui_settings=user_settings          
                 )
                 display_results(final_state)
             except Exception as e:
                 add_assistant_message(f"❌ **Error:** {str(e)}")
 
-        # Clean up temp image file
         if image_path and os.path.exists(image_path):
             os.unlink(image_path)
 

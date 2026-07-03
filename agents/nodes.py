@@ -22,7 +22,7 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Instantiate provider once 
+# Instantiate provider once
 llm = GeminiProvider()
 
 # Map tool names to actual functions
@@ -35,17 +35,50 @@ TOOL_MAP = {
     "estimate_repair_priority": estimate_repair_priority,
 }
 
+# ---------- Helper to enforce dict return ----------
+def ensure_dict(func):
+    """Decorator that checks the node returns a dict."""
+    def wrapper(state: AgentState) -> AgentState:
+        result = func(state)
+        if not isinstance(result, dict):
+            logger.error(f"Node {func.__name__} returned {type(result)} instead of dict")
+            raise TypeError(
+                f"Node '{func.__name__}' must return a dict, got {type(result).__name__}"
+            )
+        return result
+    return wrapper
+
+# ---------- Node: entry (does nothing, just passes state) ----------
+def entry_node(state: AgentState) -> AgentState:
+    """
+    Simple entry node. It does not change the state.
+    The conditional edge after this node decides where to go.
+    """
+    logger.info("Entry node – routing to vision or planner.")
+    return state
+
+# ---------- Conditional edge function (NOT a node) ----------
 def router(state: AgentState) -> str:
-    """Determine if image analysis is needed."""
+    """
+    Determine if image analysis is needed.
+    Returns the name of the next node: "vision" or "planner".
+    """
     if state.get("image_path"):
         logger.info("Image detected – routing to vision node.")
         return "vision"
     logger.info("No image – routing directly to planner.")
     return "planner"
 
+# ---------- Node: vision ----------
+@ensure_dict
 def vision(state: AgentState) -> AgentState:
     """Analyse uploaded image using Gemini Vision."""
-    img_path = state["image_path"]
+    img_path = state.get("image_path")
+    if not img_path:
+        logger.warning("Vision node called but no image_path in state.")
+        state["image_analysis"] = "No image provided."
+        return state
+
     prompt = (
         "You are a solar O&M expert. Describe the image in detail, focusing on any anomalies, "
         "damage (cracks, corrosion, burn marks, bird droppings, vegetation, tilt), or safety issues. "
@@ -59,9 +92,11 @@ def vision(state: AgentState) -> AgentState:
         description = "Image analysis failed. Please ensure the image is valid."
 
     state["image_analysis"] = description
-    # Always proceed to planner after vision
     return state
 
+# ---------- Node: planner ----------
+# ---------- Node: planner ----------
+@ensure_dict
 def planner(state: AgentState) -> AgentState:
     """
     Core reasoning node.
@@ -75,11 +110,22 @@ def planner(state: AgentState) -> AgentState:
     docs, sources_str = retrieve_context(query, settings.top_k_docs)
     state["retrieved_docs"] = docs
 
-    # 2. Build messages list (conversation history + latest)
-    messages = state.get("messages", [])[-6:]  # keep last 6 turns for context
-    # Add latest user query (with image info if present)
-    user_content = query
-    messages.append({"role": "user", "content": user_content})
+    # 2. Build messages list (conversation history + latest query)
+    # Get last 6 messages from UI history (stored in state)
+    history = state.get("messages", [])[-6:]
+    messages = []
+    # Append system prompt as a system message (if your provider supports it)
+    # Since our llm.py builds a single prompt, we can just add it as a user message
+    # or we can rely on the system_prompt parameter.
+    # We'll put the system prompt separately in the call, so we only put user/assistant/tool here.
+    for msg in history:
+        # Ensure we have the correct role names: 'user', 'assistant', 'tool'
+        role = msg.get("role", "user")
+        # Map 'assistant' to 'assistant' (our llm.py will treat it as assistant)
+        # For 'tool', we keep it as 'tool'
+        messages.append({"role": role, "content": msg.get("content", "")})
+    # Add the current user query (with image context)
+    messages.append({"role": "user", "content": query})
 
     # 3. Call LLM with tools
     try:
@@ -93,6 +139,43 @@ def planner(state: AgentState) -> AgentState:
         state["final_response"] = f"Error communicating with AI model: {str(e)}"
         return state
 
+    # 4. Safely parse response
+    # Expected response is a genai.types.GenerateContentResponse
+    if hasattr(response, "candidates") and response.candidates:
+        candidate = response.candidates[0]
+        if hasattr(candidate, "content") and candidate.content.parts:
+            parts = candidate.content.parts
+            for part in parts:
+                # Check for function call
+                if hasattr(part, "function_call") and part.function_call:
+                    tool_call = part.function_call
+                    logger.info(f"LLM requested tool: {tool_call.name} with args {tool_call.args}")
+                    state["tool_calls"] = [{"name": tool_call.name, "args": dict(tool_call.args)}]
+                    return state
+                # Check for text
+                elif hasattr(part, "text") and part.text:
+                    final_text = part.text
+                    state["final_response"] = final_text
+                    return state
+            # If we reach here, no usable part found
+            state["final_response"] = "LLM returned an empty or unsupported response."
+            return state
+        else:
+            state["final_response"] = "LLM response missing content."
+            return state
+    else:
+        # Fallback for simplified response objects (e.g., if using a different wrapper)
+        if hasattr(response, "function_call") and response.function_call:
+            tool_call = response.function_call
+            state["tool_calls"] = [{"name": tool_call.name, "args": dict(tool_call.args)}]
+            return state
+        elif hasattr(response, "text") and response.text:
+            state["final_response"] = response.text
+            return state
+        else:
+            state["final_response"] = f"Unexpected LLM response format: {type(response)}"
+            return state
+
     # 4. Check for function call
     if hasattr(response, "function_call") and response.function_call:
         tool_call = response.function_call
@@ -104,9 +187,10 @@ def planner(state: AgentState) -> AgentState:
         # No tool requested – final answer directly
         final_text = response.text if hasattr(response, "text") else str(response)
         state["final_response"] = final_text
-        # This will route to generator (we can just end or go to generator for formatting)
         return state
 
+# ---------- Node: tool_caller ----------
+@ensure_dict
 def tool_caller(state: AgentState) -> AgentState:
     """Execute tool calls requested by the LLM."""
     results = []
@@ -133,6 +217,8 @@ def tool_caller(state: AgentState) -> AgentState:
     logger.info("Tools executed, routing back to planner.")
     return state
 
+# ---------- Node: generator ----------
+@ensure_dict
 def generator(state: AgentState) -> AgentState:
     """Final formatting node (can be used for post-processing if needed)."""
     # In this implementation, planner already sets final_response, so we just pass through.
