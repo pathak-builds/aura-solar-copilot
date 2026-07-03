@@ -100,34 +100,36 @@ def vision(state: AgentState) -> AgentState:
 def planner(state: AgentState) -> AgentState:
     """
     Core reasoning node.
-    Retrieves context, builds a prompt, calls LLM (with tools if needed).
-    Decides next step: tool_caller or generator.
+    Retrieves context, builds a prompt WITH documents, calls LLM.
     """
     # 1. Retrieve relevant documents
     query = state["user_query"]
     if state.get("image_analysis"):
-        query += f" [Image context: {state['image_analysis']}]"
+        query += f"\n\n[Image context: {state['image_analysis']}]"
     docs, sources_str = retrieve_context(query, settings.top_k_docs)
     state["retrieved_docs"] = docs
 
-    # 2. Build messages list (conversation history + latest query)
-    # Get last 6 messages from UI history (stored in state)
-    history = state.get("messages", [])[-6:]
-    messages = []
-    # Append system prompt as a system message (if your provider supports it)
-    # Since our llm.py builds a single prompt, we can just add it as a user message
-    # or we can rely on the system_prompt parameter.
-    # We'll put the system prompt separately in the call, so we only put user/assistant/tool here.
-    for msg in history:
-        # Ensure we have the correct role names: 'user', 'assistant', 'tool'
-        role = msg.get("role", "user")
-        # Map 'assistant' to 'assistant' (our llm.py will treat it as assistant)
-        # For 'tool', we keep it as 'tool'
-        messages.append({"role": role, "content": msg.get("content", "")})
-    # Add the current user query (with image context)
-    messages.append({"role": "user", "content": query})
+    # 2. Build the user prompt – INCLUDE the documents
+    if docs:
+        context = "\n\n".join(
+            [f"DOCUMENT {i+1} (source: {d.metadata.get('source', 'unknown')}):\n{d.page_content}"
+             for i, d in enumerate(docs)]
+        )
+        full_user_content = f"""CONTEXT DOCUMENTS:
+{context}
 
-    # 3. Call LLM with tools
+USER QUERY:
+{state["user_query"]}"""
+        if state.get("image_analysis"):
+            full_user_content += f"\n\nImage Analysis: {state['image_analysis']}"
+    else:
+        full_user_content = query
+
+    # 3. Build messages (conversation history + this enriched user message)
+    messages = state.get("messages", [])[-6:]  # keep last 6 turns
+    messages.append({"role": "user", "content": full_user_content})
+
+    # 4. Call LLM with tools
     try:
         response = llm.generate_text(
             system_prompt=SYSTEM_PROMPT,
@@ -139,55 +141,16 @@ def planner(state: AgentState) -> AgentState:
         state["final_response"] = f"Error communicating with AI model: {str(e)}"
         return state
 
-    # 4. Safely parse response
-    # Expected response is a genai.types.GenerateContentResponse
-    if hasattr(response, "candidates") and response.candidates:
-        candidate = response.candidates[0]
-        if hasattr(candidate, "content") and candidate.content.parts:
-            parts = candidate.content.parts
-            for part in parts:
-                # Check for function call
-                if hasattr(part, "function_call") and part.function_call:
-                    tool_call = part.function_call
-                    logger.info(f"LLM requested tool: {tool_call.name} with args {tool_call.args}")
-                    state["tool_calls"] = [{"name": tool_call.name, "args": dict(tool_call.args)}]
-                    return state
-                # Check for text
-                elif hasattr(part, "text") and part.text:
-                    final_text = part.text
-                    state["final_response"] = final_text
-                    return state
-            # If we reach here, no usable part found
-            state["final_response"] = "LLM returned an empty or unsupported response."
-            return state
-        else:
-            state["final_response"] = "LLM response missing content."
-            return state
-    else:
-        # Fallback for simplified response objects (e.g., if using a different wrapper)
-        if hasattr(response, "function_call") and response.function_call:
-            tool_call = response.function_call
-            state["tool_calls"] = [{"name": tool_call.name, "args": dict(tool_call.args)}]
-            return state
-        elif hasattr(response, "text") and response.text:
-            state["final_response"] = response.text
-            return state
-        else:
-            state["final_response"] = f"Unexpected LLM response format: {type(response)}"
-            return state
-
-    # 4. Check for function call
+    # 5. Handle tool call vs final answer
     if hasattr(response, "function_call") and response.function_call:
         tool_call = response.function_call
-        logger.info(f"LLM requested tool: {tool_call.name} with args {tool_call.args}")
+        logger.info(f"LLM requested tool: {tool_call.name}")
         state["tool_calls"] = [{"name": tool_call.name, "args": dict(tool_call.args)}]
-        # We'll return the state and the conditional edge will route to tool_caller
-        return state
     else:
-        # No tool requested – final answer directly
         final_text = response.text if hasattr(response, "text") else str(response)
         state["final_response"] = final_text
-        return state
+
+    return state
 
 # ---------- Node: tool_caller ----------
 @ensure_dict
